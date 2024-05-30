@@ -2,3 +2,5 @@
 .*.swp
 .*.swo
 backups/
+*.mp4
+files/frames/
