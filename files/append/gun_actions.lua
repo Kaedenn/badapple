@@ -13,14 +13,21 @@ table.insert(actions,
 		--max_uses = 25,
 		--custom_xml_file = "data/entities/misc/custom_cards/rainbow_trail.xml",
 		action = function()
+			local libkae = dofile_once("mods/badapple/files/lib/libkae.lua")
+			libkae.table.print(c)
+
 			c.fire_rate_wait = c.fire_rate_wait + 600
 			current_reload_time = current_reload_time + 600
 
 			GamePrintImportant("The Gods are watching")
 
+			local frame = GameGetFrameNum()
+			GlobalsSetValue("badapple_run", tostring(1))
+			GlobalsSetValue("badapple_trigger_frame", tostring(frame))
+			GlobalsSetValue("badapple_start_frame", tostring(frame + 60))
+
 			if reflecting then return end
 
-			local frame = GameGetFrameNum()
 			local lifetime = 20 + c.lifetime_add
 
 			local caster_entity = GetUpdatedEntityID()
