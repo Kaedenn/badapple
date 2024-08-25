@@ -1,3 +1,4 @@
+-- luacheck: globals actions ACTION_TYPE_OTHER
 table.insert(actions, 
 {
 	id          = "BAD_APPLE",
@@ -13,6 +14,7 @@ table.insert(actions,
 	max_uses = 1,
 	--custom_xml_file = "data/entities/misc/custom_cards/rainbow_trail.xml",
 	action = function()
+		-- luacheck: globals c reflecting
 		c.fire_rate_wait = c.fire_rate_wait + 600
 		current_reload_time = current_reload_time + 600
 		if reflecting then return end

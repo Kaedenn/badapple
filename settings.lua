@@ -12,7 +12,28 @@ mod_settings = {
         ui_name = "Extra Delay",
         ui_description = "Additional delay added between video frames (requires restart)",
         value_default = 0,
-        scope = MOD_SETTING_SCOPE_RESTART,
+        scope = MOD_SETTING_SCOPE_RUNTIME_RESTART,
+    },
+    {
+        category_id = "debug_settings",
+        ui_name = "Debugging",
+        foldable = true,
+        settings = {
+            {
+                id = "debug",
+                ui_name = "Debugging",
+                ui_description = "Enable debugging and extra diagnostics",
+                value_default = false,
+                scope = MOD_SETTING_SCOPE_RUNTIME,
+            },
+            {
+                id = "cutoff",
+                ui_name = "Video Length Override",
+                ui_description = "Override the length of the video in frames (0 for default) (requires restart)",
+                value_default = 0,
+                scope = MOD_SETTING_SCOPE_RUNTIME_RESTART,
+            }
+        }
     }
 }
 
