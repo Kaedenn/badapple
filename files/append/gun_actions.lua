@@ -12,7 +12,6 @@ table.insert(actions,
 	price = 10,
 	mana = 0,
 	max_uses = 1,
-	--custom_xml_file = "data/entities/misc/custom_cards/rainbow_trail.xml",
 	action = function()
 		-- luacheck: globals c reflecting
 		c.fire_rate_wait = c.fire_rate_wait + 600

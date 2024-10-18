@@ -3,5 +3,6 @@
 .*.swo
 backups/
 *.mp4
+ref/
 files/frames/
 files/frames_orig/

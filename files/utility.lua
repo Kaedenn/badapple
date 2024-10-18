@@ -14,6 +14,15 @@ function get_trigger_frame()
     return tonumber(GlobalsGetValue("badapple_trigger_frame", "-1"))
 end
 
+-- Get the size of an image in pixels
+function get_image_size(image_path)
+    local gui = GuiCreate()
+    GuiStartFrame(gui)
+    local width, height = GuiGetImageDimensions(gui, image_path)
+    GuiDestroy(gui)
+    return width, height
+end
+
 -- DEBUGGING --
 
 function test_translations()

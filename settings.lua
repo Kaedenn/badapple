@@ -1,22 +1,32 @@
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("data/scripts/lib/mod_settings.lua")
+-- luacheck: globals MOD_SETTING_SCOPE_RUNTIME
 
 --function mod_setting_changed_callback(mod_id, gui, in_main_menu, setting, old_value, new_value)
 --end
 
 MOD_ID = "badapple"
-mod_settings_version = 1
+mod_settings_version = 2
 mod_settings = {
     {
-        id = "delay",
-        ui_name = "Extra Delay",
-        ui_description = "Additional delay added between video frames (requires restart)",
-        value_default = 0,
-        scope = MOD_SETTING_SCOPE_RUNTIME_RESTART,
+        category_id = "general_settings",
+        ui_name = "General",
+        foldable = true,
+        settings = {
+            {
+                id = "delay",
+                ui_name = "Extra Delay",
+                ui_description = "Additional delay added between video frames (requires restart)",
+                value_default = 0,
+                value_min = 0,
+                value_max = 10,
+                scope = MOD_SETTING_SCOPE_RUNTIME,
+            }
+        },
     },
     {
         category_id = "debug_settings",
-        ui_name = "Debugging",
+        ui_name = "Diagnostics",
         foldable = true,
         settings = {
             {
@@ -31,22 +41,27 @@ mod_settings = {
                 ui_name = "Video Length Override",
                 ui_description = "Override the length of the video in frames (0 for default) (requires restart)",
                 value_default = 0,
-                scope = MOD_SETTING_SCOPE_RUNTIME_RESTART,
-            }
+                value_min = 0,
+                value_max = 1000,
+                scope = MOD_SETTING_SCOPE_RUNTIME,
+            },
         }
     }
 }
 
 function ModSettingsUpdate(init_scope)
+    -- luacheck: globals mod_settings_get_version mod_settings_update
     local old_version = mod_settings_get_version(MOD_ID)
     mod_settings_update(MOD_ID, mod_settings, init_scope)
 end
 
 function ModSettingsGuiCount()
+    -- luacheck: globals mod_settings_gui_count
     return mod_settings_gui_count(MOD_ID, mod_settings)
 end
 
 function ModSettingsGui(gui, in_main_menu)
+    -- luacheck: globals mod_settings_gui
     mod_settings_gui(MOD_ID, mod_settings, gui, in_main_menu)
 end
 
