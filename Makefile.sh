@@ -44,7 +44,7 @@ EOF
 declare -a LUACHECK_ARGS=()
 NOITA_PATH="${NOITA:-}"
 declare -a DIFF_ARGS=()
-declare -a COPY_EXTRA=(files/frames)
+declare -a COPY_EXTRA=(files/frames files/frame_*.png)
 declare -a EXCLUDE_EXTRA=('*.mp4' frames_orig)
 
 while getopts "hvVnl:L:b:CFN:a:i:x:" arg; do
