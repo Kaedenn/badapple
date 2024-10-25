@@ -46,13 +46,14 @@ uniform float drugged_doublevision_amount;
 uniform sampler2D tex_debug;
 uniform sampler2D tex_debug2;
 
-
 varying vec2 tex_coord_;
 varying vec2 tex_coord_y_inverted_;
 varying vec2 tex_coord_glow_;
 varying vec2 world_pos;
 varying vec2 tex_coord_skylight;
 varying vec2 tex_coord_fogofwar;
+
+uniform vec4 lighting_disable;
 
 
 // -----------------------------------------------------------------------------------------------
@@ -135,7 +136,7 @@ void main()
 {
 	// constants
 	const bool ENABLE_REFRACTION 			= 1>0;
-	const bool ENABLE_LIGHTING	    		= 0>0;
+	const bool ENABLE_LIGHTING	    		= 1>0;
 	const bool ENABLE_FOG_OF_WAR 			= 1>0;
 	const bool ENABLE_GLOW 					= 1>0;
 	const bool ENABLE_GAMMA_CORRECTION		= 1>0;
@@ -303,7 +304,7 @@ void main()
 
 	float sky_ambient_amount;
 	float fog_amount;
-	if (ENABLE_LIGHTING)
+	if (ENABLE_LIGHTING && lighting_disable.r == 0.0)
 	{
 		const float SKY_Y_OFFSET   = 90.0;
 		const float SKY_PIXEL_SIZE = 64.0;
@@ -446,7 +447,7 @@ void main()
 	color_fg.rgb = clamp(color_fg.rgb, vec3(0.0,0.0,0.0), vec3(1.0,1.0,1.0));
 
 	// apply the lighting to the foreground
-	if (ENABLE_LIGHTING)
+	if (ENABLE_LIGHTING && lighting_disable.r == 0.0)
 		color_fg.rgb *= lights;
 
 	// fog

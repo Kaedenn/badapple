@@ -1,105 +1,130 @@
+---@alias action_fn fun(stage: stage, frame: number)
+
+---@class (exact) stage
+---@field name string
+---@field action fun(stage: stage, frame: number)
+---@field delay number?
+---@field count number?
+
+-- stage structure:
+--  name:               Name of the stage
+--  action:             Action function
+--  delay:              Frames to delay between actions
+--  count:              Max action count
+--
+--  run_count:          Number of times invoked
+--  frame_delay:        Remaining delay frames
+
 dofile_once("data/scripts/lib/utilities.lua")
--- luacheck: globals get_players
 dofile_once("mods/badapple/files/utility.lua")
--- luacheck: globals to_frames is_running get_stage get_trigger_frame get_image_size
 
--- TODO: fire + ominous liquid for white and black
---  $mat_fire 7fFF6060
---  rgba(255,255,246,127)
---  $mat_darkness 80563e66
---  rgba(5,86,99,128)
--- FIXME: cessation puzzle messages show up
-
-IMAGE_WIDTH = nil       -- Width of the video in pixels
-IMAGE_HEIGHT = nil      -- Height of the video in pixels
+IMAGE_WIDTH = nil       -- Width of the video in pixels; nil to compute
+IMAGE_HEIGHT = nil      -- Height of the video in pixels; nil to compute
 FRAME_MAX = 6516        -- Last frame of video
 BADAPPLE_FPS = 30       -- Frames per second of Bad Apple!!
 BADAPPLE_DURATION = FRAME_MAX / BADAPPLE_FPS
 
+DELAY_BEGIN = to_frames(5)
+DELAY_PLAY = math.floor(60 / BADAPPLE_FPS)
+DELAY_CLEAR = to_frames(2)
+DELAY_AMUSED = to_frames(3)
+DELAY_BORED = to_frames(3)
+DELAY_DEATH = 1
+
 EXTRA_DELAY = 0         -- Additional frame delay between video frames
 
 FRAME = "mods/badapple/files/frames/badapple_%04d.png"
+FRAME_BLACK = "mods/badapple/files/frame_black.png"
+FRAME_AIR = "mods/badapple/files/frame_air.png"
 
---[[
--- stage structure:
---  name: string                         Name of the stage
---  action: fn(stage, frame:number)      Action function
---  delay: number (frames) (optional)    Frames to delay between actions
---  count: number (optional)             Max action count
---
---  run_count: number                    Number of times invoked
---  frame_delay: number                  Remaining delay frames
---]]
+function enable_lighting()
+    GameSetPostFxParameter("lighting_disable", 0, 0, 0, 0)
+end
+
+function disable_lighting()
+    GameSetPostFxParameter("lighting_disable", 1, 1, 1, 1)
+end
+
+---Manually start the sequence
+function start_playback()
+    disable_lighting()
+    local frame = GameGetFrameNum()
+    GlobalsSetValue("badapple_run", tostring(1))
+    GlobalsSetValue("badapple_trigger_frame", tostring(frame))
+end
+
+function stop_playback()
+    enable_lighting()
+    GlobalsSetValue("badapple_run", tostring(0))
+end
+
+---@type table<stage>
 STAGES = {
     {
         name = "begin",
-        action = function(stage, frame)
-            GamePrintImportant(GameTextGet("$badapple_begin"))
-            do_begin(stage, frame)
-        end,
-        delay = to_frames(5),
+        action = function(stage, frame) do_stage_begin(stage, frame) end,
+        delay = DELAY_BEGIN,
         count = 1,
     },
     {
         name = "play",
-        action = do_render_frame,
-        delay = math.floor(60 / BADAPPLE_FPS),
+        action = function(stage, frame) do_stage_play(stage, frame) end,
+        delay = DELAY_PLAY,
         count = FRAME_MAX,
     },
     {
         name = "clear",
-        action = do_clear_frame,
-        delay = to_frames(2),
+        action = function(stage, frame) do_stage_clear(stage, frame) end,
+        delay = DELAY_CLEAR,
         count = 1,
     },
     {
         name = "amused",
-        action = function(stage, frame)
-            GamePrintImportant(GameTextGet("$badapple_amused"))
-        end,
-        delay = to_frames(10),
+        action = function(stage, frame) do_stage_amused(stage, frame) end,
+        delay = DELAY_AMUSED,
         count = 1,
     },
     {
         name = "bored",
-        action = function(stage, frame)
-            GamePrintImportant(GameTextGet("$badapple_bored"))
-            do_bored(stage, frame)
-        end,
-        delay = to_frames(10),
+        action = function(stage, frame) do_stage_bored(stage, frame) end,
+        delay = DELAY_BORED,
         count = 1,
     },
     {
         name = "death",
-        action = function(stage, frame)
-            do_kill_player(stage, frame)
-            GlobalsSetValue("badapple_run", tostring(0))
-        end,
-        delay = 1,
+        action = function(stage, frame) do_stage_death(stage, frame) end,
+        delay = DELAY_DEATH,
         count = 1,
     },
 }
 
+---Perform one-time initialization
 function init_timeline()
-    if not IMAGE_WIDTH or not IMAGE_HEIGHT then
+    if IMAGE_WIDTH == nil or IMAGE_HEIGHT == nil then
         IMAGE_WIDTH, IMAGE_HEIGHT = get_image_size(FRAME:format(1))
     end
 end
 
---[[ Obtain the Stage table for the current offset (in frames) ]]
+---Determine the stage and relative offset for the given absolute offset
+---@param frame_offset number
+---@return stage
 function get_stage(frame_offset)
+    if not IMAGE_WIDTH or not IMAGE_HEIGHT then init_timeline() end
     for stage_nr, stage in ipairs(STAGES) do
         local duration = stage.delay * stage.count
-        frame_offset = frame_offset - duration
-        if frame_offset < 0 then
-            return stage
+        if frame_offset - duration < 0 then
+            return stage, frame_offset
         end
+        frame_offset = frame_offset - duration
     end
-    return STAGES[#STAGES]
+    return STAGES[#STAGES], 0
 end
 
---[[ Obtain a stage by name ]]
+---Obtain a stage by name
+---@param stage_name string
+---@return stage
 function get_stage_named(stage_name)
+    if not IMAGE_WIDTH or not IMAGE_HEIGHT then init_timeline() end
     for _, stage in ipairs(STAGES) do
         if stage.name == stage_name then
             return stage
@@ -109,11 +134,18 @@ function get_stage_named(stage_name)
     return nil
 end
 
---[[ Execute the "begin" action ]]
-function do_begin(stage, frame)
-    ComponentSetValue2(
-        EntityGetComponent(GameGetWorldStateEntity(), "WorldStateComponent")[1],
-        "open_fog_of_war_everywhere", true)
+--------------------------------------------------------------------------------
+-- FRAME ACTIONS
+
+---Execute the "begin" action
+---@param stage stage
+---@param frame number
+function do_stage_begin(stage, frame)
+    GamePrintImportant(GameTextGet("$badapple_begin"))
+    disable_lighting()
+
+    local wsc = EntityGetFirstComponent(GameGetWorldStateEntity(), "WorldStateComponent")
+    ComponentSetValue2(wsc, "open_fog_of_war_everywhere", true)
 
     local player = get_players()[1]
     local comp = EntityGetFirstComponentIncludingDisabled(player, "PlatformShooterPlayerComponent")
@@ -124,26 +156,43 @@ function do_begin(stage, frame)
         end
         print(("Delaying for %d frames (%.2f seconds)"):format(delay, delay/60))
         -- FIXME: This causes the cessation puzzle messages to appear
-        -- FIXME: Polymorph the player instead of Cessation
-        ComponentSetValue2(comp, "mCessationDo", true)
-        ComponentSetValue2(comp, "mCessationLifetime", delay)
+        --ComponentSetValue2(comp, "mCessationDo", true)
+        --ComponentSetValue2(comp, "mCessationLifetime", delay)
     end
 end
 
---[[ Render a single frame ]]
-function do_render_frame(stage, frame)
-    do_clear_frame(stage, frame)
-    local px, py = EntityGetTransform(get_players()[1])
-    local fx, fy = px - IMAGE_WIDTH/2, py - IMAGE_HEIGHT/2
-    GameSetCameraPos(px, py)
-    LoadPixelScene(FRAME:format(frame), "", fx, fy, "", true, true, {
-        ["ffffffff"] = "magic_liquid_hp_regeneration_unstable",
-        ["ff000000"] = "midas_precursor",
-    }, 50, true)
+---Render a single frame
+---@param stage stage
+---@param frame number
+function do_stage_play(stage, frame)
+    do_stage_clear(stage, frame)
+    local fx, fy = GameGetCameraPos()
+    fx, fy = fx - IMAGE_WIDTH/2, fy - IMAGE_HEIGHT/2
+    LoadPixelScene(FRAME:format(frame), "", fx, fy, "", true, true, {}, 50, true)
 end
 
---[[ Execute the "bored" action ]]
-function do_bored(stage, frame)
+---Clear the area at the end of the video
+---@param stage stage
+---@param frame number
+function do_stage_clear(stage, frame)
+    local fx, fy = GameGetCameraPos()
+    fx, fy = fx - IMAGE_WIDTH/2, fy - IMAGE_HEIGHT/2
+    LoadPixelScene(FRAME_AIR, "", fx, fy, "", true, true, {})
+end
+
+---Execute the "amused" action
+---@param stage stage
+---@param frame number
+function do_stage_amused(stage, frame)
+    GamePrintImportant(GameTextGet("$badapple_amused"))
+end
+
+---Execute the "bored" action
+---@param stage stage
+---@param frame number
+function do_stage_bored(stage, frame)
+    GamePrintImportant(GameTextGet("$badapple_bored"))
+
     local player = get_players()[1]
     local comp = EntityGetFirstComponentIncludingDisabled(player, "PlatformShooterPlayerComponent")
     if comp ~= nil then
@@ -152,27 +201,12 @@ function do_bored(stage, frame)
     end
 end
 
---[[ Clear the area at the end of the video ]]
-function do_clear_frame(stage, frame)
-    local px, py = EntityGetTransform(get_players()[1])
-    local fx, fy = px - IMAGE_WIDTH/2, py - IMAGE_HEIGHT/2
-    GameSetCameraPos(px, py)
-    LoadPixelScene(FRAME:format(1), "", fx, fy, "", true, true, {
-        ["ff000000"] = "air",
-        ["ffffffff"] = "air",
-    })
-end
-
---[[ Polymorph, spawn enemy ]]
-function do_kill_player(stage, frame)
-
-end
-
---[[ Manually start the sequence ]]
-function start_playback()
-    local frame = GameGetFrameNum()
-    GlobalsSetValue("badapple_run", tostring(1))
-    GlobalsSetValue("badapple_trigger_frame", tostring(frame))
+---Polymorph, spawn enemy
+---@param stage stage
+---@param frame number
+function do_stage_death(stage, frame)
+    enable_lighting()
+    GlobalsSetValue("badapple_run", tostring(0))
 end
 
 -- vim: set ts=4 sts=4 sw=4:

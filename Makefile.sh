@@ -334,6 +334,7 @@ do_luacheck() { # file...
   if [[ -z "${LUACHECK:-}" ]]; then
     info "luacheck not available; skipping check"
   elif [[ -x "${LUACHECK:-}" ]]; then
+    debug "$LUACHECK" "${LUACHECK_ARGS[@]}" "$@"
     "$LUACHECK" "${LUACHECK_ARGS[@]}" "$@"
     return $?
   else
