@@ -1,0 +1,5 @@
+{f9e35849-583c-4710-b773-021cc6f75f22} bank:/badapple
+{61fe789d-2947-0b52-313a-88e2370459ba} bank:/badapple.strings
+{4a36c181-65c4-4e8d-899e-cf127b3930c0} bus:/
+{52b1da4e-d04e-4aec-8094-840c8985504f} bus:/Reverb
+{391eebfe-4883-4b2f-8e57-65efaba5443e} event:/snd_mod/create

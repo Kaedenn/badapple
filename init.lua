@@ -103,6 +103,7 @@ function _runner()
 end
 
 function OnModPreInit()
+    ModRegisterAudioEventMappings("mods/badapple/files/audio/GUIDS.txt")
 end
 
 function OnModPostInit()

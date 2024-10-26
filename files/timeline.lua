@@ -159,6 +159,9 @@ function do_stage_begin(stage, frame)
         --ComponentSetValue2(comp, "mCessationDo", true)
         --ComponentSetValue2(comp, "mCessationLifetime", delay)
     end
+
+    GameEntityPlaySound(player, "badapple/start")
+
 end
 
 ---Render a single frame
