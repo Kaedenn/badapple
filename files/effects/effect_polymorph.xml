@@ -1,8 +1,9 @@
 <Entity>
-  <GameEffectComponent
-    effect="POLYMORPH",
-    frames="600",
-    disable_movement="1",
-    polymorph_target="data/entities/animals/wand_ghost.xml">
-  </GameEffectComponent>
+    <GameEffectComponent
+        effect="POLYMORPH"
+        frames="600"
+        disable_movement="1"
+        polymorph_target="mods/badapple/files/entities/animal_apple.xml"
+    >
+    </GameEffectComponent>
 </Entity>
