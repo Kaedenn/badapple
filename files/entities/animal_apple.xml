@@ -1,4 +1,4 @@
-<Entity tags="mortal" name="$animal_apple">
+<Entity tags="entity_badapple" name="$animal_apple">
   
     <_Transform 
         rotation="0" 

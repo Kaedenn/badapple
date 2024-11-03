@@ -9,6 +9,7 @@ files["settings.lua"] = {
     "mod_settings_get_version",
     "mod_settings_gui",
     "mod_settings_gui_count",
+    "mod_setting_get_id",
   }
 }
 
@@ -22,6 +23,11 @@ files["files/timeline.lua"] = {
     "get_stage",
     "get_trigger_frame",
     "get_image_size",
+    "get_effect_entity",
+    "effect_is_initialized",
+    "effect_get_frames",
+    "effect_set_frames",
+    "effect_set_frames_once",
   }
 }
 
@@ -32,6 +38,10 @@ files["init.lua"] = {
     -- "mods/badapple/files/timeline.lua"
     "IMAGE_WIDTH",
     "IMAGE_HEIGHT",
+    "RUN_MODE_OFF",
+    "RUN_MODE_INIT",
+    "RUN_MODE_RUN",
+    "RUN_MODE_END",
     "STAGES",
     "get_stage",
     "get_stage_named",

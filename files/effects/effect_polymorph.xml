@@ -1,4 +1,4 @@
-<Entity>
+<Entity tags="effect_badapple">
     <GameEffectComponent
         effect="POLYMORPH"
         frames="600"
@@ -6,4 +6,12 @@
         polymorph_target="mods/badapple/files/entities/animal_apple.xml"
     >
     </GameEffectComponent>
+
+    <VariableStorageComponent
+        _tags="vsc_initialized"
+        name="initialized"
+        value_bool="0"
+    >
+    </VariableStorageComponent>
+
 </Entity>

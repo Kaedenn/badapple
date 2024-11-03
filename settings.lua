@@ -16,12 +16,33 @@ mod_settings = {
             {
                 id = "delay",
                 ui_name = "Extra Delay",
-                ui_description = "Additional delay added between video frames (requires restart)",
+                ui_description = "Additional delay added between video frames",
                 value_default = 0,
                 value_min = 0,
                 value_max = 10,
                 scope = MOD_SETTING_SCOPE_RUNTIME,
-            }
+            },
+            {
+                id = "white_pixels",
+                ui_name = "White Pixel Material",
+                ui_description = "Material to use for the white pixels (default: air)",
+                value_default = "air",
+                scope = MOD_SETTING_SCOPE_RUNTIME,
+            },
+            {
+                id = "black_pixels",
+                ui_name = "Black Pixel Material",
+                ui_description = "Material to use for the black pixels (default: templebrick_static)",
+                value_default = "templebrick_static",
+                scope = MOD_SETTING_SCOPE_RUNTIME,
+            },
+            {
+                id = "use_custom_materials",
+                ui_name = "Use custom materials?",
+                ui_description = "Should this mod use the two materials defined above or should it use the default materials?",
+                value_default = false,
+                scope = MOD_SETTING_SCOPE_RUNTIME,
+            },
         },
     },
     {

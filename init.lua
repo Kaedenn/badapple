@@ -4,9 +4,8 @@
 
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/badapple/files/timeline.lua")
+dofile_once("mods/badapple/files/utility.lua")
 
-root_x = nil
-root_y = nil
 gui = nil
 
 function spawn_spell()
@@ -28,77 +27,80 @@ function process_appends()
     ModTextFileSetContent("data/translations/common.csv", translations)
 end
 
-function reset_timeline()
-    for _, stage in ipairs(STAGES) do
-        stage.run_count = 0
-        stage.frame_delay = 0
-    end
-
-    init_timeline()
-
-    local play_stage = get_stage_named("play")
-    play_stage.delay = play_stage.delay + ModSettingGetNextValue("badapple.delay")
-    local vid_length = ModSettingGetNextValue("badapple.cutoff")
-    if vid_length > 0 then
-        play_stage.count = vid_length
-    end
-end
-
+local line_table = {}
 function _runner()
-    local player = get_players()[1]
+    local run_mode = GlobalsGetValue("badapple_run")
+    if run_mode == RUN_MODE_INIT then
+        STAGES:init_timeline()
+        run_mode = RUN_MODE_RUN
+        GlobalsSetValue("badapple_run", run_mode)
+    end
 
-    if not is_running() then return end
+    if run_mode == RUN_MODE_END then
+        STAGES:finish_timeline()
+        run_mode = RUN_MODE_OFF
+    end
+
+    if run_mode ~= RUN_MODE_RUN then
+        return
+    end
+
     local trigger = get_trigger_frame()
     if trigger == -1 then
         print_error("is_running=true but trigger is -1")
-        GlobalsSetValue("badapple_run", tostring(0))
+        GlobalsSetValue("badapple_run", RUN_MODE_OFF)
         return
     end
 
     local curr = GameGetFrameNum()
     local offset = curr - trigger
-    local stage, curr_offset = get_stage(offset)
+    local stage, curr_offset = STAGES:get_stage(offset)
     if not stage then
         print_error(("No stage for offset %d"):format(offset))
-        GlobalsSetValue("badapple_run", tostring(0))
+        GlobalsSetValue("badapple_run", RUN_MODE_OFF)
         return
     end
 
-    if not root_x or not root_y then
-        player_x, player_y = EntityGetTransform(player)
-        root_x, root_y = player_x, player_y - IMAGE_HEIGHT
+    local player = get_players()[1]
+    if player and player ~= 0 then
+        EntitySetTransform(player, STAGES.root_x, STAGES.root_y + IMAGE_HEIGHT / 2)
     end
-    GameSetCameraPos(root_x, root_y)
-    EntitySetTransform(player, player_x, player_y)
+    if stage.lock_camera then
+        GameSetCameraPos(STAGES.root_x, STAGES.root_y)
+    end
 
     if not gui then gui = GuiCreate() end
     GuiStartFrame(gui)
     local sw, sh = GuiGetScreenDimensions(gui)
     local cw, ch = GuiGetTextDimensions(gui, "M")
     local linenr = 0
-    local function draw_line(line)
-        local debugging = ModSettingGetNextValue("badapple.debug")
-        if debugging then
+    local debugging = ModSettingGetNextValue("badapple.debug")
+    local draw_line = function(line) end
+    if debugging then
+        draw_line = function(line)
             linenr = linenr + 1
             local liney = sh - ch * linenr - 2
             GuiText(gui, 2, liney, line)
         end
     end
-    local stage_time = stage.count * stage.delay
+    local stage_time = stage.count * (stage.delay + 1)
     draw_line(("Frame %d %d / %d (%2d%%)"):format(offset, curr_offset, stage_time,
         curr_offset / stage_time * 100))
+    draw_line(("Count: %d, delay: %d"):format(stage.count, stage.delay))
     draw_line(("Stage %s %d/%d:"):format(stage.name, stage.run_count, stage.count))
 
     if stage.run_count < stage.count then
         if stage.frame_delay > 0 then
             stage.frame_delay = stage.frame_delay - 1
-            draw_line(("Stage %s delay %d"):format(stage.name, stage.frame_delay))
         else
+            stage.run_count = stage.run_count + 1
             stage.frame_delay = stage.delay
-            if stage.action then stage.action(stage, curr_offset) end
-            draw_line(("Stage %s action %d"):format(stage.name, stage.run_count))
+            if stage.action then
+                stage.action(STAGES, stage, stage.run_count)
+            end
         end
-        stage.run_count = stage.run_count + 1
+        draw_line(("Stage %s delay %d count %d"):format(stage.name,
+            stage.frame_delay, stage.run_count))
     end
 end
 
@@ -111,7 +113,7 @@ function OnModPostInit()
 end
 
 function OnPlayerSpawned()
-    reset_timeline()
+
 end
 
 function OnWorldPostUpdate()
