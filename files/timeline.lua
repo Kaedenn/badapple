@@ -1,12 +1,24 @@
----@alias action_fn fun(stage: stage, frame: number)
 
----@class (exact) stage
+---@class stage_type
 ---@field name string
----@field action fun(stages: table<stage>, stage: stage, frame: number)
+---@field action fun(stages: stages_type, stage: stage_type, frame: number)
 ---@field delay number?
 ---@field count number?
 ---@field lock_camera boolean
 ---@field lock_player boolean
+
+---@class stages_type
+---@field screen_width number
+---@field screen_height number
+---@field effect_entity number?
+---@field root_x number?
+---@field root_y number?
+---@field player_x number?
+---@field player_y number?
+---@field use_custom_materials boolean
+---@field material_white string
+---@field material_black string
+---@field [number] stage_type
 
 -- stage structure:
 --  name:               Name of the stage
@@ -52,18 +64,8 @@ PIXEL_BLACK = "ff786c42" -- templebrick_static
 MATERIAL_WHITE = "air"
 MATERIAL_BLACK = "templebrick_static"
 
---[[ Re-enable the lighting system ]]
-function enable_lighting()
-    GameSetPostFxParameter("lighting_disable", 0, 0, 0, 0)
-end
-
---[[ Disable the lighting system, thus making everything fullbright ]]
-function disable_lighting()
-    GameSetPostFxParameter("lighting_disable", 1, 1, 1, 1)
-end
-
 ---The timeline: all of the stages, delays, run counts, and supporting data
----@type table<stage>
+---@type stages_type
 STAGES = {
     {
         name = "begin",
@@ -115,14 +117,14 @@ STAGES = {
     },
     screen_width = 427,
     screen_height = 242,
-    effect_entity = nil,
+    effect_entity = nil,                -- entity ID of polymorph entity
     player_x = nil,
     player_y = nil,
-    root_x = nil,
-    root_y = nil,
+    root_x = nil,                       -- camera center x
+    root_y = nil,                       -- camera center y
     use_custom_materials = false,
-    material_white = MATERIAL_WHITE,
-    material_black = MATERIAL_BLACK,
+    material_white = MATERIAL_WHITE,    -- "air"
+    material_black = MATERIAL_BLACK,    -- "templebrick_static"
 }
 
 ---Perform one-time initialization
@@ -188,7 +190,7 @@ end
 
 ---Determine the stage and relative offset for the given absolute offset
 ---@param frame_offset number
----@return stage
+---@return stage_type, number
 function STAGES:get_stage(frame_offset)
     if not IMAGE_WIDTH or not IMAGE_HEIGHT then self:init_timeline() end
     for stage_nr, stage in ipairs(self) do
@@ -203,7 +205,7 @@ end
 
 ---Obtain a stage by name
 ---@param stage_name string
----@return stage? nil if no stage exists with that name
+---@return stage_type? nil if no stage exists with that name
 function STAGES:get_stage_named(stage_name)
     if not IMAGE_WIDTH or not IMAGE_HEIGHT then self:init_timeline() end
     for _, stage in ipairs(self) do
@@ -219,8 +221,8 @@ end
 -- FRAME ACTIONS
 
 ---Execute the "begin" action
----@param stages table<stage>
----@param stage stage
+---@param stages stages_type
+---@param stage stage_type
 ---@param frame number
 function do_stage_begin(stages, stage, frame)
     GamePrintImportant(GameTextGet("$badapple_begin"))
@@ -231,7 +233,7 @@ function do_stage_begin(stages, stage, frame)
     for _, curr in ipairs(STAGES) do
         delay = delay + (curr.delay + 1) * curr.count
     end
-    print(("Delaying for %d frames (%.2f seconds)"):format(delay, delay/60))
+    print(("Delaying for %d frames (%.2f seconds)"):format(delay, delay / 60))
     LoadGameEffectEntityTo(player, "mods/badapple/files/effects/effect_polymorph.xml")
 
     local entid = get_effect_entity(stages.root_x, stages.root_y)
@@ -245,7 +247,7 @@ function do_stage_begin(stages, stage, frame)
     local screen_x = stages.root_x - screen_w / 2
     local screen_y = stages.root_y - screen_h / 2
 
-    fill_area_32x32(screen_x, screen_y, screen_w, screen_h, stages.material_black)
+    fill_area_material(screen_x, screen_y, screen_w, screen_h, stages.material_black)
 
     -- TODO: Perhaps play Bad Apple!! via in-game audio?
     --GamePlaySound("mods/badapple/files/audio/badapple.bank", "badapple/start",
@@ -253,12 +255,12 @@ function do_stage_begin(stages, stage, frame)
 end
 
 ---Render a single frame
----@param stages table<stage>
----@param stage stage
+---@param stages stages_type
+---@param stage stage_type
 ---@param frame number
 function do_stage_play(stages, stage, frame)
-    local fx = stages.root_x - IMAGE_WIDTH/2
-    local fy = stages.root_y - IMAGE_HEIGHT/2
+    local fx = stages.root_x - IMAGE_WIDTH / 2
+    local fy = stages.root_y - IMAGE_HEIGHT / 2
     local colortab = {
         [PIXEL_WHITE] = STAGES.material_white,
         [PIXEL_BLACK] = STAGES.material_black,
@@ -266,9 +268,9 @@ function do_stage_play(stages, stage, frame)
     LoadPixelScene(FRAME:format(frame), "", fx, fy, "", true, true, colortab, 50, true)
 end
 
----Clear the area at the end of the video
----@param stages table<stage>
----@param stage stage
+---Fill the entire area with the default stone pattern at the end of the video
+---@param stages stages_type
+---@param stage stage_type
 ---@param frame number
 function do_stage_clear(stages, stage, frame)
     local screen_w = stages.screen_width
@@ -276,20 +278,20 @@ function do_stage_clear(stages, stage, frame)
     local screen_x = stages.root_x - screen_w / 2
     local screen_y = stages.root_y - screen_h / 2
 
-    fill_area_32x32(screen_x, screen_y, screen_w, screen_h, "air")
+    fill_area_stone(screen_x, screen_y, screen_w, screen_h)
 end
 
 ---Execute the "amused" action
----@param stages table<stage>
----@param stage stage
+---@param stages stages_type
+---@param stage stage_type
 ---@param frame number
 function do_stage_amused(stages, stage, frame)
     GamePrintImportant(GameTextGet("$badapple_amused"))
 end
 
 ---Execute the "bored" action
----@param stages table<stage>
----@param stage stage
+---@param stages stages_type
+---@param stage stage_type
 ---@param frame number
 function do_stage_bored(stages, stage, frame)
     GamePrintImportant(GameTextGet("$badapple_bored"))
@@ -302,12 +304,12 @@ function do_stage_bored(stages, stage, frame)
 
     local screen_w = stages.screen_width
     local screen_x = stages.root_x - screen_w / 2
-    fill_area_32x32(screen_x, stages.player_y - 29, screen_w, 32, "air")
+    fill_area_material(screen_x, stages.player_y - 29, screen_w, 32, "air")
 end
 
 ---Polymorph, spawn enemy
----@param stages table<stage>
----@param stage stage
+---@param stages stages_type
+---@param stage stage_type
 ---@param frame number
 function do_stage_death(stages, stage, frame)
     GlobalsSetValue("badapple_run", RUN_MODE_OFF)

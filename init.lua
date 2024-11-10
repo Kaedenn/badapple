@@ -6,24 +6,13 @@
 
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/badapple/files/timeline.lua")
+dofile_once("mods/badapple/files/wand.lua")
 dofile_once("mods/badapple/files/utility.lua")
 
 gui = nil
 
-SPAWN_SPELL_X = 650
-SPAWN_SPELL_Y = -100
-
-function spawn_spell(xpos, ypos)
-    if xpos == nil or ypos == nil then
-        local player = get_players()[1]
-        if not player then return end
-        local px, py = EntityGetTransform(player)
-        if not px or not py then return end
-        if xpos == nil then xpos = px end
-        if ypos == nil then ypos = py end
-    end
-    CreateItemActionEntity("BAD_APPLE", xpos, ypos)
-end
+SPELL_SPAWN_X = 650
+SPELL_SPAWN_Y = -100
 
 function process_appends()
     ModLuaFileAppend(
@@ -125,7 +114,7 @@ function _runner()
 end
 
 function OnWorldInitialized()
-    spawn_spell(SPELL_SPAWN_X, SPELL_SPAWN_Y)
+    spawn_badapple_wand(SPELL_SPAWN_X, SPELL_SPAWN_Y)
 end
 
 function OnModPreInit()

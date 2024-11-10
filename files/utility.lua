@@ -1,23 +1,33 @@
 
 MaterialColorTable = dofile_once("mods/badapple/files/material_colors.lua")
 
--- Convert a number of seconds to a frame offset
+---Convert a number of seconds to a frame offset
 function to_frames(seconds)
     return math.floor(60 * seconds)
 end
 
--- Get the frame the playback was triggered
+---Get the frame the playback was triggered
 function get_trigger_frame()
     return tonumber(GlobalsGetValue("badapple_trigger_frame", "-1"))
 end
 
--- Get the size of an image in pixels
+---Get the size of an image in pixels
 function get_image_size(image_path)
     local gui = GuiCreate()
     GuiStartFrame(gui)
     local width, height = GuiGetImageDimensions(gui, image_path)
     GuiDestroy(gui)
     return width, height
+end
+
+---Re-enable the lighting system
+function enable_lighting()
+    GameSetPostFxParameter("lighting_disable", 0, 0, 0, 0)
+end
+
+---Disable the lighting system, thus making everything full-bright
+function disable_lighting()
+    GameSetPostFxParameter("lighting_disable", 1, 1, 1, 1)
 end
 
 --[[ Functions relating to the polymorph effect entity ]]
@@ -102,7 +112,6 @@ function effect_set_initialized(entid, value)
     return false
 end
 
--- Get the number of frames remaining for the effect entity
 ---Determine how many frames are left in the effect entity
 ---@param entid number? entity ID of the effect entity
 ---@return number? frames remaining, or nil if not found
@@ -147,7 +156,7 @@ end
 ---@param fx number X position of the area to cover
 ---@param fy number Y position of the area to cover
 ---@param material string name of material to use
-function fill_material_32x32(fx, fy, material)
+function fill_material(fx, fy, material)
     local image = "mods/badapple/files/frame_air_32x32.png"
     print(("Applying %s to %d,%d"):format(material, fx-16, fy-16))
     LoadPixelScene(image, "", fx-16, fy-16, "", true, true, {
@@ -157,18 +166,43 @@ end
 
 ---Fill a rectangular area with a specific material
 ---@param frame_x number X position of the area to cover
----@param framw_y number Y position of the area to cover
+---@param frame_y number Y position of the area to cover
 ---@param frame_w number width of the area to cover
----@param framw_h number height of the area to cover
+---@param frame_h number height of the area to cover
 ---@param material string material to use to cover the area
-function fill_area_32x32(frame_x, frame_y, frame_w, frame_h, material)
+function fill_area_material(frame_x, frame_y, frame_w, frame_h, material)
     for xoff = 0, math.ceil(frame_w/32)-1, 1 do
         for yoff = 0, math.ceil(frame_h/32)-1, 1 do
             local bxoff = math.min(xoff * 32, frame_w - 32)
             local byoff = math.min(yoff * 32, frame_h - 32)
             local bx = bxoff + frame_x
             local by = byoff + frame_y
-            fill_material_32x32(bx+16, by+16, material)
+            fill_material(bx+16, by+16, material)
+        end
+    end
+end
+
+---Fill a 32x32 pixel area centered at the given coordinates with default stone
+---@param world_x number X position of the area to cover's center
+---@param world_y number X position of the area to cover's center
+function fill_stone(world_x, world_y)
+    local image = "mods/badapple/files/frame_white_32x32.png"
+    LoadPixelScene(image, "", world_x-16, world_y-16, "", true, true, {}, 50, true)
+end
+
+---Fill a rectangular area with the biome's default stone pattern
+---@param world_x number X position of the area to cover
+---@param world_y number Y position of the area to cover
+---@param world_w number width of the area to cover
+---@param world_h number height of the area to cover
+function fill_area_stone(world_x, world_y, world_w, world_h)
+    for xoff = 0, math.ceil(world_w/32)-1, 1 do
+        for yoff = 0, math.ceil(world_h/32)-1, 1 do
+            local bxoff = math.min(xoff * 32, world_w - 32)
+            local byoff = math.min(yoff * 32, world_h - 32)
+            local bx = bxoff + world_x
+            local by = byoff + world_y
+            fill_stone(bx+16, by+16)
         end
     end
 end

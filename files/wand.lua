@@ -1,6 +1,7 @@
 --[[ Spawn the Bad Apple!! wand ]]
 
-dofile_once("mods/badapple/files/lib/EZWand.lua")
+dofile_once("data/scripts/lib/utilities.lua")
+EZWand = dofile_once("mods/badapple/files/lib/EZWand.lua")
 dofile_once("mods/badapple/files/utility.lua")
 
 ---Spawns a shiny new Bad Apple!! wand
@@ -19,10 +20,11 @@ function spawn_badapple_wand(wand_x, wand_y)
         spread = 0,
         speedMultiplier = 1,
     }, wand_x, wand_y)
-    wand:AttachSpells("BAD_APPLE")
-    wand:SetSprite("mods/badapple/files/wands/scepter_01.xml", 3, 4, 17, 5)
-    wand:SetName("$item_wand_badapple", true)
+    wand:AddSpells("BAD_APPLE")
     wand:PlaceAt(wand_x, wand_y)
+    wand:SetSprite("mods/badapple/files/wand/scepter_01.xml", 3, 4, 17, 5)
+    wand:SetName("$item_wand_badapple", true)
+    wand:SetFrozen(true, true)
 end
 
 ---Spawn just the Bad Apple!! spell

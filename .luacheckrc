@@ -1,4 +1,5 @@
 exclude_files = {
+  "files/lib/EZWand.lua",
 }
 
 files["settings.lua"] = {
@@ -19,16 +20,29 @@ files["files/timeline.lua"] = {
     "get_players",
     -- "mods/badapple/files/utility.lua"
     "to_frames",
-    "is_running",
-    "get_stage",
     "get_trigger_frame",
     "get_image_size",
+    "enable_lighting",
+    "disable_lighting",
     "get_effect_entity",
+    "get_effect_component",
+    "get_effect_var_component",
     "effect_is_initialized",
+    "effect_set_initialized",
     "effect_get_frames",
     "effect_set_frames",
     "effect_set_frames_once",
-    "fill_area_32x32",
+    "fill_material",
+    "fill_area_material",
+    "fill_stone",
+    "fill_area_stone",
+  }
+}
+
+files["files/wand.lua"] = {
+  read_globals = {
+    -- "data/scripts/lib/utilities.lua"
+    "get_players",
   }
 }
 
@@ -49,6 +63,8 @@ files["init.lua"] = {
     "is_running",
     "get_trigger_frame",
     "init_timeline",
+    -- "mods/badapple/files/wand.lua"
+    "spawn_badapple_wand",
   }
 }
 
