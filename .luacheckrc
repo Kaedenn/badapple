@@ -28,6 +28,7 @@ files["files/timeline.lua"] = {
     "effect_get_frames",
     "effect_set_frames",
     "effect_set_frames_once",
+    "fill_area_32x32",
   }
 }
 

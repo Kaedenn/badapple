@@ -2,18 +2,27 @@
 -- Bad Apple!! but it's Noita
 --]]
 
+--TODO: See if GameSetCameraFree(bool) is better than GameSetCameraPos()
+
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/badapple/files/timeline.lua")
 dofile_once("mods/badapple/files/utility.lua")
 
 gui = nil
 
-function spawn_spell()
-    local player = get_players()[1]
-    if not player then return end
-    local px, py = EntityGetTransform(player)
-    if not px or not py then return end
-    CreateItemActionEntity("BAD_APPLE", px, py)
+SPAWN_SPELL_X = 650
+SPAWN_SPELL_Y = -100
+
+function spawn_spell(xpos, ypos)
+    if xpos == nil or ypos == nil then
+        local player = get_players()[1]
+        if not player then return end
+        local px, py = EntityGetTransform(player)
+        if not px or not py then return end
+        if xpos == nil then xpos = px end
+        if ypos == nil then ypos = py end
+    end
+    CreateItemActionEntity("BAD_APPLE", xpos, ypos)
 end
 
 function process_appends()
@@ -54,19 +63,16 @@ function _runner()
 
     local curr = GameGetFrameNum()
     local offset = curr - trigger
+    if offset < 0 then
+        -- Runner has requested a grace period before we begin
+        return
+    end
+
     local stage, curr_offset = STAGES:get_stage(offset)
     if not stage then
         print_error(("No stage for offset %d"):format(offset))
         GlobalsSetValue("badapple_run", RUN_MODE_OFF)
         return
-    end
-
-    local player = get_players()[1]
-    if player and player ~= 0 then
-        EntitySetTransform(player, STAGES.root_x, STAGES.root_y + IMAGE_HEIGHT / 2)
-    end
-    if stage.lock_camera then
-        GameSetCameraPos(STAGES.root_x, STAGES.root_y)
     end
 
     if not gui then gui = GuiCreate() end
@@ -89,6 +95,20 @@ function _runner()
     draw_line(("Count: %d, delay: %d"):format(stage.count, stage.delay))
     draw_line(("Stage %s %d/%d:"):format(stage.name, stage.run_count, stage.count))
 
+    local player = get_players()[1]
+    if player and player ~= 0 then
+        if stage.lock_player then
+            EntitySetTransform(player, STAGES.root_x, STAGES.root_y + IMAGE_HEIGHT / 2)
+            draw_line(("Locked player to %d, %d"):format(
+                STAGES.root_x,
+                STAGES.root_y + IMAGE_HEIGHT / 2))
+        end
+    end
+    if stage.lock_camera then
+        GameSetCameraPos(STAGES.root_x, STAGES.root_y)
+        draw_line(("Locked camera to %d, %d"):format(STAGES.root_x, STAGES.root_y))
+    end
+
     if stage.run_count < stage.count then
         if stage.frame_delay > 0 then
             stage.frame_delay = stage.frame_delay - 1
@@ -102,6 +122,10 @@ function _runner()
         draw_line(("Stage %s delay %d count %d"):format(stage.name,
             stage.frame_delay, stage.run_count))
     end
+end
+
+function OnWorldInitialized()
+    spawn_spell(SPELL_SPAWN_X, SPELL_SPAWN_Y)
 end
 
 function OnModPreInit()

@@ -23,6 +23,13 @@ mod_settings = {
                 scope = MOD_SETTING_SCOPE_RUNTIME,
             },
             {
+                id = "use_custom_materials",
+                ui_name = "Use Custom Materials?",
+                ui_description = "Should this mod use the two materials defined below or should it use the default materials?",
+                value_default = false,
+                scope = MOD_SETTING_SCOPE_RUNTIME,
+            },
+            {
                 id = "white_pixels",
                 ui_name = "White Pixel Material",
                 ui_description = "Material to use for the white pixels (default: air)",
@@ -34,13 +41,6 @@ mod_settings = {
                 ui_name = "Black Pixel Material",
                 ui_description = "Material to use for the black pixels (default: templebrick_static)",
                 value_default = "templebrick_static",
-                scope = MOD_SETTING_SCOPE_RUNTIME,
-            },
-            {
-                id = "use_custom_materials",
-                ui_name = "Use custom materials?",
-                ui_description = "Should this mod use the two materials defined above or should it use the default materials?",
-                value_default = false,
                 scope = MOD_SETTING_SCOPE_RUNTIME,
             },
         },

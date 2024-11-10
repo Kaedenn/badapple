@@ -2,15 +2,19 @@
 
 ---@class (exact) stage
 ---@field name string
----@field action fun(stage: stage, frame: number)
+---@field action fun(stages: table<stage>, stage: stage, frame: number)
 ---@field delay number?
 ---@field count number?
+---@field lock_camera boolean
+---@field lock_player boolean
 
 -- stage structure:
 --  name:               Name of the stage
 --  action:             Action function
 --  delay:              Frames to delay between actions
 --  count:              Max action count
+--  lock_camera:        Lock the camera to root_x, root_y this stage?
+--  lock_player:        Lock the player to prevent movement this stage?
 --
 --  run_count:          Number of times invoked
 --  frame_delay:        Remaining delay frames
@@ -27,7 +31,7 @@ BADAPPLE_DURATION = FRAME_MAX / BADAPPLE_FPS
 DELAY_BEGIN = to_frames(5)
 DELAY_PLAY = math.max(math.floor(60 / BADAPPLE_FPS) - 1, 0)
 DELAY_CLEAR = to_frames(2)
-DELAY_AMUSED = to_frames(3)
+DELAY_AMUSED = to_frames(10)
 DELAY_BORED = to_frames(3)
 DELAY_DEATH = 1
 
@@ -58,6 +62,7 @@ function disable_lighting()
     GameSetPostFxParameter("lighting_disable", 1, 1, 1, 1)
 end
 
+---The timeline: all of the stages, delays, run counts, and supporting data
 ---@type table<stage>
 STAGES = {
     {
@@ -66,6 +71,7 @@ STAGES = {
         delay = DELAY_BEGIN,
         count = 1,
         lock_camera = true,
+        lock_player = true,
     },
     {
         name = "play",
@@ -73,6 +79,7 @@ STAGES = {
         delay = DELAY_PLAY,
         count = FRAME_MAX,
         lock_camera = true,
+        lock_player = true,
     },
     {
         name = "clear",
@@ -80,6 +87,7 @@ STAGES = {
         delay = DELAY_CLEAR,
         count = 1,
         lock_camera = true,
+        lock_player = true,
     },
     {
         name = "amused",
@@ -87,6 +95,7 @@ STAGES = {
         delay = DELAY_AMUSED,
         count = 1,
         lock_camera = true,
+        lock_player = true,
     },
     {
         name = "bored",
@@ -94,6 +103,7 @@ STAGES = {
         delay = DELAY_BORED,
         count = 1,
         lock_camera = false,
+        lock_player = false,
     },
     {
         name = "death",
@@ -101,10 +111,13 @@ STAGES = {
         delay = DELAY_DEATH,
         count = 1,
         lock_camera = false,
+        lock_player = false,
     },
-    gui = nil,
     screen_width = 427,
     screen_height = 242,
+    effect_entity = nil,
+    player_x = nil,
+    player_y = nil,
     root_x = nil,
     root_y = nil,
     use_custom_materials = false,
@@ -118,25 +131,25 @@ function STAGES:init_timeline()
         IMAGE_WIDTH, IMAGE_HEIGHT = get_image_size(FRAME:format(1))
     end
 
-    if self.gui ~= nil then
-        GuiDestroy(self.gui)
-    end
-    self.gui = GuiCreate()
-    self.screen_width, self.screen_height = GuiGetScreenDimensions(self.gui)
-
     for _, stage in ipairs(self) do
         stage.run_count = 0
         stage.frame_delay = 0
     end
 
+    self.screen_width = MagicNumbersGetValue("VIRTUAL_RESOLUTION_X")
+    self.screen_height = MagicNumbersGetValue("VIRTUAL_RESOLUTION_Y")
+
     local player = get_players()[1]
     local player_x, player_y = EntityGetTransform(player)
+    self.player_x = player_x
+    self.player_y = player_y
     self.root_x = player_x
     self.root_y = player_y - IMAGE_HEIGHT / 2
     self.use_custom_materials = false
     self.material_white = MATERIAL_WHITE
     self.material_black = MATERIAL_BLACK
 
+    -- If using custom materials, validate and apply those
     if ModSettingGetNextValue("badapple.use_custom_materials") then
         self.use_custom_materials = true
         local mat_white = ModSettingGetNextValue("badapple.white_pixels")
@@ -155,6 +168,7 @@ function STAGES:init_timeline()
         end
     end
 
+    -- Initialize the stage delay and run counts
     local play_stage = self:get_stage_named("play")
     play_stage.delay = DELAY_PLAY + math.ceil(ModSettingGetNextValue("badapple.delay"))
     local vid_length = ModSettingGetNextValue("badapple.cutoff")
@@ -165,9 +179,9 @@ end
 
 ---Called to clean up everything
 function STAGES:finish_timeline()
-    local entid = get_effect_entity(self.root_x, self.root_y)
-    if entid ~= nil then
-        effect_set_frames(entid, 10)
+    local framecount = effect_get_frames(self.effect_entity)
+    if framecount ~= nil and framecount > 10 then
+        effect_set_frames(self.effect_entity, 10)
     end
     enable_lighting()
 end
@@ -189,7 +203,7 @@ end
 
 ---Obtain a stage by name
 ---@param stage_name string
----@return stage
+---@return stage? nil if no stage exists with that name
 function STAGES:get_stage_named(stage_name)
     if not IMAGE_WIDTH or not IMAGE_HEIGHT then self:init_timeline() end
     for _, stage in ipairs(self) do
@@ -222,14 +236,16 @@ function do_stage_begin(stages, stage, frame)
 
     local entid = get_effect_entity(stages.root_x, stages.root_y)
     if entid ~= nil then
+        stages.effect_entity = entid
         effect_set_frames_once(entid, delay)
     end
 
-    local screen_left = stages.root_x - stages.screen_width / 2
-    local screen_right = stages.root_x + stages.screen_width / 2
-    local screen_top = stages.root_y - stages.screen_height / 2
-    local screen_bottom = stages.root_y + stages.screen_height / 2
-    -- TODO: pre-fill the screen borders with the black material
+    local screen_w = stages.screen_width
+    local screen_h = stages.screen_height
+    local screen_x = stages.root_x - screen_w / 2
+    local screen_y = stages.root_y - screen_h / 2
+
+    fill_area_32x32(screen_x, screen_y, screen_w, screen_h, stages.material_black)
 
     -- TODO: Perhaps play Bad Apple!! via in-game audio?
     --GamePlaySound("mods/badapple/files/audio/badapple.bank", "badapple/start",
@@ -255,12 +271,12 @@ end
 ---@param stage stage
 ---@param frame number
 function do_stage_clear(stages, stage, frame)
-    local fx = stages.root_x - IMAGE_WIDTH/2
-    local fy = stages.root_y - IMAGE_HEIGHT/2
-    local colortab = {
-        [PIXEL_WHITE] = "air",
-    }
-    LoadPixelScene(FRAME_AIR, "", fx, fy, "", true, true, colortab, 50, true)
+    local screen_w = stages.screen_width
+    local screen_h = stages.screen_height
+    local screen_x = stages.root_x - screen_w / 2
+    local screen_y = stages.root_y - screen_h / 2
+
+    fill_area_32x32(screen_x, screen_y, screen_w, screen_h, "air")
 end
 
 ---Execute the "amused" action
@@ -278,10 +294,15 @@ end
 function do_stage_bored(stages, stage, frame)
     GamePrintImportant(GameTextGet("$badapple_bored"))
     enable_lighting()
-    local entid = get_effect_entity(stages.root_x, stages.root_y)
-    if entid ~= nil then
-        effect_set_frames(entid, 10)
+
+    local framecount = effect_get_frames(stages.effect_entity)
+    if framecount ~= nil and framecount > 10 then
+        effect_set_frames(stages.effect_entity, 10)
     end
+
+    local screen_w = stages.screen_width
+    local screen_x = stages.root_x - screen_w / 2
+    fill_area_32x32(screen_x, stages.player_y - 29, screen_w, 32, "air")
 end
 
 ---Polymorph, spawn enemy
@@ -289,7 +310,7 @@ end
 ---@param stage stage
 ---@param frame number
 function do_stage_death(stages, stage, frame)
-    GlobalsSetValue("badapple_run", tostring(0))
+    GlobalsSetValue("badapple_run", RUN_MODE_OFF)
 end
 
 -- vim: set ts=4 sts=4 sw=4:

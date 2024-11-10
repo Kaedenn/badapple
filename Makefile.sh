@@ -45,7 +45,7 @@ declare -a LUACHECK_ARGS=()
 NOITA_PATH="${NOITA:-}"
 declare -a DIFF_ARGS=()
 declare -a COPY_EXTRA=(files/frames files/frame_*.png)
-declare -a EXCLUDE_EXTRA=('*.mp4' frames_orig)
+declare -a EXCLUDE_EXTRA=('*.mp4' frames_orig Fmod '*.zip' notes.txt)
 
 while getopts "hvVnl:L:b:CFN:a:i:x:" arg; do
   case "$arg" in
