@@ -12,7 +12,7 @@ dofile_once("mods/badapple/files/utility.lua")
 gui = nil
 
 SPELL_SPAWN_X = 650
-SPELL_SPAWN_Y = -100
+SPELL_SPAWN_Y = -90
 
 function process_appends()
     ModLuaFileAppend(
@@ -69,7 +69,7 @@ function _runner()
     local sw, sh = GuiGetScreenDimensions(gui)
     local cw, ch = GuiGetTextDimensions(gui, "M")
     local linenr = 0
-    local debugging = ModSettingGetNextValue("badapple.debug")
+    local debugging = ModSettingGetNextValue("badapple.debug") == "1"
     local draw_line = function(line) end
     if debugging then
         draw_line = function(line)
