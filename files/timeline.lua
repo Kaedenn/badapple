@@ -40,12 +40,15 @@ FRAME_MAX = 6516        -- Last frame of video
 BADAPPLE_FPS = 30       -- Frames per second of Bad Apple!!
 BADAPPLE_DURATION = FRAME_MAX / BADAPPLE_FPS
 
+ROOT_X_ADJUST_COEFF = 0 -- display centered on player
+ROOT_Y_ADJUST_COEFF = 1 -- display IMAGE_HEIGHT above the player
+
 DELAY_BEGIN = to_frames(5)
 DELAY_PLAY = math.max(math.floor(60 / BADAPPLE_FPS) - 1, 0)
 DELAY_CLEAR = to_frames(2)
-DELAY_AMUSED = to_frames(10)
+DELAY_AMUSED = to_frames(5)
 DELAY_BORED = to_frames(3)
-DELAY_DEATH = 1
+DELAY_FINISH = 1
 
 EXTRA_DELAY = 0         -- Additional frame delay between video frames
 
@@ -55,8 +58,6 @@ RUN_MODE_RUN = "2"
 RUN_MODE_END = "3"
 
 FRAME = "mods/badapple/files/frames/badapple_%04d.png"
-FRAME_BLACK = "mods/badapple/files/frame_black.png"
-FRAME_AIR = "mods/badapple/files/frame_air.png"
 
 PIXEL_WHITE = "ff000042" -- air
 PIXEL_BLACK = "ff786c42" -- templebrick_static
@@ -96,8 +97,8 @@ STAGES = {
         action = function(...) do_stage_amused(...) end,
         delay = DELAY_AMUSED,
         count = 1,
-        lock_camera = true,
-        lock_player = true,
+        lock_camera = false,
+        lock_player = false,
     },
     {
         name = "bored",
@@ -108,9 +109,9 @@ STAGES = {
         lock_player = false,
     },
     {
-        name = "death",
-        action = function(...) do_stage_death(...) end,
-        delay = DELAY_DEATH,
+        name = "finish",
+        action = function(...) do_stage_finish(...) end,
+        delay = DELAY_FINISH,
         count = 1,
         lock_camera = false,
         lock_player = false,
@@ -145,8 +146,8 @@ function STAGES:init_timeline()
     local player_x, player_y = EntityGetTransform(player)
     self.player_x = player_x
     self.player_y = player_y
-    self.root_x = player_x
-    self.root_y = player_y - IMAGE_HEIGHT / 2
+    self.root_x = player_x - ROOT_X_ADJUST_COEFF * IMAGE_WIDTH
+    self.root_y = player_y - ROOT_Y_ADJUST_COEFF * IMAGE_HEIGHT
     self.use_custom_materials = false
     self.material_white = MATERIAL_WHITE
     self.material_black = MATERIAL_BLACK
@@ -273,28 +274,6 @@ end
 ---@param stage stage_type
 ---@param frame number
 function do_stage_clear(stages, stage, frame)
-    local screen_w = stages.screen_width
-    local screen_h = stages.screen_height
-    local screen_x = stages.root_x - screen_w / 2
-    local screen_y = stages.root_y - screen_h / 2
-
-    fill_area_stone(screen_x, screen_y, screen_w, screen_h)
-end
-
----Execute the "amused" action
----@param stages stages_type
----@param stage stage_type
----@param frame number
-function do_stage_amused(stages, stage, frame)
-    GamePrintImportant(GameTextGet("$badapple_amused"))
-end
-
----Execute the "bored" action
----@param stages stages_type
----@param stage stage_type
----@param frame number
-function do_stage_bored(stages, stage, frame)
-    GamePrintImportant(GameTextGet("$badapple_bored"))
     enable_lighting()
 
     local framecount = effect_get_frames(stages.effect_entity)
@@ -303,15 +282,48 @@ function do_stage_bored(stages, stage, frame)
     end
 
     local screen_w = stages.screen_width
+    local screen_h = stages.screen_height
     local screen_x = stages.root_x - screen_w / 2
+    local screen_y = stages.root_y - screen_h / 2
+
+    fill_area_stone(screen_x, screen_y, screen_w, screen_h)
+
     fill_area_material(screen_x, stages.player_y - 29, screen_w, 32, "air")
+
+    local fill_w, fill_h = 32 * 6, 32 * 3
+    local fill_x = stages.player_x - fill_w / 2
+    local fill_y = stages.player_y - fill_h
+    fill_area_material(fill_x, fill_y, fill_w, fill_h, "air")
 end
 
----Polymorph, spawn enemy
+---Execute the "amused" action
 ---@param stages stages_type
 ---@param stage stage_type
 ---@param frame number
-function do_stage_death(stages, stage, frame)
+function do_stage_amused(stages, stage, frame)
+    GamePrintImportant(GameTextGet("$badapple_amused"))
+
+    local player = get_players()[1]
+    LoadGameEffectEntityTo(player, "data/entities/misc/effect_polymorph.xml")
+end
+
+---Execute the "bored" action
+---@param stages stages_type
+---@param stage stage_type
+---@param frame number
+function do_stage_bored(stages, stage, frame)
+    GamePrintImportant(GameTextGet("$badapple_bored"))
+
+    local entx = stages.player_x
+    local enty = stages.player_y - 64
+    EntityLoad("data/entities/animals/necromancer_shop.xml", entx, enty)
+end
+
+---Called to finish the timeline
+---@param stages stages_type
+---@param stage stage_type
+---@param frame number
+function do_stage_finish(stages, stage, frame)
     GlobalsSetValue("badapple_run", RUN_MODE_OFF)
 end
 
